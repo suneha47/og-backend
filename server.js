@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const productRoutes = require("./routes/productRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 app.use(cors());
@@ -19,11 +20,11 @@ app.get("/", (req, res) => {
   res.send("OG Accessories 47 Backend is Running");
 });
 
-// Products routes
+// Routes
 app.use("/products", productRoutes);
+app.use("/admin", adminRoutes);
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
