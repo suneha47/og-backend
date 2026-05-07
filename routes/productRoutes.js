@@ -6,16 +6,16 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Product = require('../models/Product');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// ── CLOUDINARY CONFIG ──
+// ── CLOUDINARY CONFIG (hardcoded for reliability) ──
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dhqy7ibyg',
-  api_key: process.env.CLOUDINARY_API_KEY || '263775619532848',
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: 'dhqy7ibyg',
+  api_key:    '263775619532848',
+  api_secret: 'RUN5B3wwCPvpGVdCE7540LZYlJQ',
 });
 
 // ── MULTER + CLOUDINARY STORAGE ──
 const storage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
     folder: 'og-accessories',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
@@ -24,8 +24,8 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 // ── GET ALL PRODUCTS (public) ──
@@ -34,7 +34,6 @@ router.get('/', async (req, res) => {
     const products = await Product.find().sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
-    console.error('GET products error:', err);
     res.status(500).json({ message: 'Server error fetching products' });
   }
 });
@@ -56,11 +55,9 @@ router.post('/upload', authMiddleware, upload.single('image'), async (req, res) 
     if (!req.file) {
       return res.status(400).json({ message: 'No image file provided' });
     }
-    // multer-storage-cloudinary puts the URL in req.file.path
     const imageUrl = req.file.path || req.file.secure_url || req.file.url;
     res.json({ imageUrl });
   } catch (err) {
-    console.error('Upload error:', err);
     res.status(500).json({ message: 'Image upload failed: ' + err.message });
   }
 });
@@ -76,7 +73,6 @@ router.post('/', authMiddleware, async (req, res) => {
     await product.save();
     res.status(201).json(product);
   } catch (err) {
-    console.error('Add product error:', err);
     res.status(500).json({ message: 'Server error adding product' });
   }
 });
@@ -93,7 +89,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (!product) return res.status(404).json({ message: 'Product not found' });
     res.json(product);
   } catch (err) {
-    console.error('Update product error:', err);
     res.status(500).json({ message: 'Server error updating product' });
   }
 });
@@ -103,21 +98,16 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    // Also delete from Cloudinary if image exists
     if (product.image) {
       try {
         const parts = product.image.split('/');
         const filename = parts[parts.length - 1];
         const publicId = 'og-accessories/' + filename.split('.')[0];
         await cloudinary.uploader.destroy(publicId);
-      } catch (e) {
-        // Don't fail if Cloudinary delete fails
-        console.log('Cloudinary delete skipped:', e.message);
-      }
+      } catch (e) { /* ignore */ }
     }
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
-    console.error('Delete product error:', err);
     res.status(500).json({ message: 'Server error deleting product' });
   }
 });
