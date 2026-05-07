@@ -8,9 +8,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 // ── CLOUDINARY CONFIG ──
 cloudinary.config({
-  cloud_name: 'dhqy7ibyg',
-  api_key: '263775619532848',
-  api_secret: process.env.CLOUDINARY_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dhqy7ibyg',
+  api_key: process.env.CLOUDINARY_API_KEY || '263775619532848',
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // ── MULTER + CLOUDINARY STORAGE ──
