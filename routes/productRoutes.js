@@ -6,11 +6,11 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Product = require('../models/Product');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// ── CLOUDINARY CONFIG (hardcoded for reliability) ──
+// ── CLOUDINARY CONFIG ──
 cloudinary.config({
   cloud_name: 'dhqy7ibyg',
   api_key:    '263775619532848',
-  api_secret: 'RUN5B3wwCPvpGVdCE7540LZYlJQ',
+  api_secret: 'RUN5B3wwCPvpGVdCE754OLZYlJQ',
 });
 
 // ── MULTER + CLOUDINARY STORAGE ──
