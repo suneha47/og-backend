@@ -5,30 +5,32 @@ require('dotenv').config();
 
 const app = express();
 
-// ── CORS ──
+// — CORS —
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ── BODY PARSERS ──
+// — BODY PARSERS —
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── MONGODB CONNECTION ──
+// — MONGODB CONNECTION —
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
-// ── ROUTES ──
+// — ROUTES —
 const adminRoutes   = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
+const settingRoutes = require('./routes/settingRoutes');
 
 app.use('/api/admin',    adminRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/settings', settingRoutes);
 
-// ── HEALTH CHECK ──
+// — HEALTH CHECK —
 app.get('/', (req, res) => {
   res.json({
     status: 'OG Accessories 47 Backend Running ✅',
@@ -36,17 +38,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// ── 404 HANDLER ──
-app.use((req, res) => {
-  res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
-});
-
-// ── ERROR HANDLER ──
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ message: err.message || 'Internal server error' });
-});
-
-// ── START ──
+// — START SERVER —
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
