@@ -40,4 +40,16 @@ app.get('/', (req, res) => {
 
 // — START SERVER —
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+
+  // — SELF PING every 5 mins to prevent Render free tier sleep —
+  setInterval(() => {
+    const https = require('https');
+    https.get('https://og-backend-2-pytg.onrender.com', (res) => {
+      console.log(`🏓 Self-ping OK at ${new Date().toISOString()}`);
+    }).on('error', (err) => {
+      console.error('🔴 Self-ping failed:', err.message);
+    });
+  }, 5 * 60 * 1000);
+});
