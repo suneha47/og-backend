@@ -15,7 +15,7 @@ router.post('/', async (req, res) => {
     const order = await Order.create({ customer, items, total, payment, userId: userId || null });
     res.status(201).json({ success: true, orderId: order.orderId, _id: order._id });
     // Send email notification (non-blocking)
-    sendOrderNotification(order).catch(() => {});
+    sendOrderNotification(order).catch(e => console.error('[MAILER ERROR]', e.message));
   } catch (err) {
     res.status(500).json({ message: 'Failed to place order.' });
   }
