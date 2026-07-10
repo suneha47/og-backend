@@ -9,7 +9,11 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendOrderNotification(order) {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) {
+    console.error('[MAILER] Missing NOTIFY_EMAIL or NOTIFY_PASS env var');
+    return;
+  }
+  console.log('[MAILER] Sending order notification to', process.env.NOTIFY_EMAIL);
 
   const itemsHtml = order.items.map(i =>
     `<tr>
