@@ -1,19 +1,13 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.NOTIFY_EMAIL,
-    pass: process.env.NOTIFY_PASS,  // Gmail App Password
-  },
-});
+const { Resend } = require('resend');
 
 async function sendOrderNotification(order) {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) {
-    console.error('[MAILER] Missing NOTIFY_EMAIL or NOTIFY_PASS env var');
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[MAILER] Missing RESEND_API_KEY env var');
     return;
   }
   console.log('[MAILER] Sending order notification to', process.env.NOTIFY_EMAIL);
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const itemsHtml = order.items.map(i =>
     `<tr>
@@ -60,13 +54,13 @@ async function sendOrderNotification(order) {
         </table>
         <div style="text-align:center;padding-top:16px;border-top:1px solid #e4ddd3">
           <p style="font-size:13px;color:#6b6460;margin:0">Log in to your <strong>Admin Dashboard</strong> to confirm and update the order status.</p>
-          <a href="https://ogaccessories.netlify.app/dashboard.html" style="display:inline-block;margin-top:12px;background:linear-gradient(135deg,#8a6a14,#b8921e);color:#fff;text-decoration:none;padding:10px 28px;border-radius:6px;font-weight:700;font-size:14px">Open Dashboard →</a>
+          <a href="https://og-frontend.vercel.app/dashboard.html" style="display:inline-block;margin-top:12px;background:linear-gradient(135deg,#8a6a14,#b8921e);color:#fff;text-decoration:none;padding:10px 28px;border-radius:6px;font-weight:700;font-size:14px">Open Dashboard →</a>
         </div>
       </div>
     </div>`;
 
-  await transporter.sendMail({
-    from: `"OG Accessories 47" <${process.env.NOTIFY_EMAIL}>`,
+  await resend.emails.send({
+    from: 'OG Accessories 47 <onboarding@resend.dev>',
     to: process.env.NOTIFY_EMAIL,
     subject: `🛍️ New Order #${order.orderId} — ₹${Number(order.total).toLocaleString('en-IN')} (${order.customer.name})`,
     html,
