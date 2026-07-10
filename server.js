@@ -25,10 +25,12 @@ mongoose.connect(process.env.MONGO_URI)
 const adminRoutes   = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
 const settingRoutes = require('./routes/settingRoutes');
+const userRoutes    = require('./routes/userRoutes');
 
 app.use('/api/admin',    adminRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/users',    userRoutes);
 
 // — HEALTH CHECK —
 app.get('/', (req, res) => {
