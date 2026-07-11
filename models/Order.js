@@ -13,8 +13,12 @@ const orderSchema = new mongoose.Schema({
     name:    { type: String, required: true },
     price:   { type: Number, required: true },
     qty:     { type: Number, required: true, min: 1 },
+    size:    { type: String, default: '' },
+    color:   { type: String, default: '' },
   }],
-  total:   { type: Number, required: true },
+  total:         { type: Number, required: true },
+  couponCode:    { type: String, default: '' },
+  couponDiscount:{ type: Number, default: 0 },
   payment: {
     method:    { type: String, enum: ['cod', 'upi', 'razorpay'], default: 'cod' },
     status:    { type: String, enum: ['pending', 'paid'], default: 'pending' },
@@ -28,7 +32,6 @@ const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
-// Auto-generate short order ID before save
 orderSchema.pre('save', async function (next) {
   if (!this.orderId) {
     const count = await mongoose.model('Order').countDocuments();
