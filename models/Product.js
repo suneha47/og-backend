@@ -12,6 +12,8 @@ const productSchema = new mongoose.Schema({
   sizes:        [{ type: String }],               // ['S','M','L','XL']
   colors:       [{ type: String }],               // ['Red','Blue','Black']
   imagePublicId:{ type: String, default: "" },
+  avgRating:    { type: Number, default: 0 },
+  reviewCount:  { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Product", productSchema);

@@ -1,6 +1,7 @@
 const express = require('express');
 const Order = require('../models/Order');
 const Coupon = require('../models/Coupon');
+const Product = require('../models/Product');
 const protect = require('../middleware/authMiddleware');
 const userProtect = require('../middleware/userAuthMiddleware');
 const { sendOrderNotification, sendCustomerConfirmation } = require('../utils/mailer');
@@ -43,7 +44,16 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, orderId: order.orderId, _id: order._id, total: finalTotal, couponDiscount });
 
-    // Non-blocking emails
+    // Non-blocking: deduct stock + send emails
+    (async () => {
+      for (const item of items) {
+        // Only deduct if stock is finite (not -1)
+        await Product.findOneAndUpdate(
+          { _id: item.product, stock: { $gt: 0 } },
+          { $inc: { stock: -Math.max(1, item.qty) } }
+        ).catch(() => {});
+      }
+    })();
     sendOrderNotification(order).catch(e => console.error('[MAILER ADMIN]', e.message));
     sendCustomerConfirmation(order).catch(e => console.error('[MAILER CUSTOMER]', e.message));
 

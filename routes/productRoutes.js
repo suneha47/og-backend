@@ -145,6 +145,13 @@ router.post('/:id/reviews', userAuth, async (req, res) => {
       rating: Number(rating),
       comment: comment || '',
     });
+    // Recalculate product's avg rating
+    const allReviews = await Review.find({ productId: req.params.id });
+    const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+    await Product.findByIdAndUpdate(req.params.id, {
+      avgRating: Math.round(avg * 10) / 10,
+      reviewCount: allReviews.length,
+    });
     res.status(201).json(review);
   } catch (err) {
     res.status(500).json({ message: 'Error adding review' });
