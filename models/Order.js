@@ -29,6 +29,10 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
     default: 'pending',
   },
+  tracking: {
+    courierName:   { type: String, default: '' },
+    trackingNumber:{ type: String, default: '' },
+  },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 

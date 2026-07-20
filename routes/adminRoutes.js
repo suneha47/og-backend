@@ -89,4 +89,20 @@ router.get("/stats", auth, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/orders/:id/tracking — save courier + tracking number
+router.patch("/orders/:id/tracking", auth, async (req, res) => {
+  try {
+    const { courierName, trackingNumber } = req.body;
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { tracking: { courierName: courierName || '', trackingNumber: trackingNumber || '' } },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json({ message: 'Tracking updated', tracking: order.tracking });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating tracking', error: err.message });
+  }
+});
+
 module.exports = router;
