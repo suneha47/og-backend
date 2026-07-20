@@ -1,25 +1,37 @@
-const nodemailer = require('nodemailer');
+const https = require('https');
 
-let _transporter = null;
-function getTransporter() {
-  if (!_transporter) {
-    _transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      family: 4,
-      auth: {
-        user: process.env.NOTIFY_EMAIL,
-        pass: process.env.NOTIFY_PASS,
-      },
-      pool: true,
-      maxConnections: 3,
+function sendViaBr evo(to, subject, html) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      sender: { name: 'OG Accessories 47', email: process.env.NOTIFY_EMAIL },
+      to: Array.isArray(to) ? to.map(e => ({ email: e })) : [{ email: to }],
+      subject,
+      htmlContent: html,
     });
-  }
-  return _transporter;
-}
 
-const FROM = `"OG Accessories 47" <${process.env.NOTIFY_EMAIL || 'bhullarsam162@gmail.com'}>`;
+    const req = https.request({
+      hostname: 'api.brevo.com',
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(data),
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(body);
+        else reject(new Error(`Brevo ${res.statusCode}: ${body}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
 
 function itemsTable(items) {
   return items.map(i =>
@@ -39,7 +51,7 @@ function payLabel(method) {
 
 // ── Admin notification ──────────────────────────────────────────────────────
 async function sendOrderNotification(order) {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) { console.error('[MAILER] Missing NOTIFY_EMAIL or NOTIFY_PASS'); return; }
+  if (!process.env.BREVO_API_KEY) { console.error('[MAILER] Missing BREVO_API_KEY'); return; }
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
@@ -51,7 +63,7 @@ async function sendOrderNotification(order) {
         <div style="background:#faf9f7;border:1px solid #e4ddd3;border-radius:8px;padding:16px;margin-bottom:20px">
           <h3 style="margin:0 0 12px;color:#1c1917;font-size:15px">📦 Order #${order.orderId}</h3>
           <p style="margin:4px 0;font-size:14px;color:#6b6460"><strong style="color:#1c1917">Customer:</strong> ${order.customer.name}</p>
-          <p style="margin:4px 0;font-size:14px;color:#6b6460"><strong style="color:#1c1917">Phone:</strong> <a href="tel:${order.customer.phone}" style="color:#b8921e">${order.customer.phone}</a></p>
+          <p style="margin:4px 0;font-size:14px;color:#6b6460"><strong style="color:#1c1917">Phone:</strong> ${order.customer.phone}</p>
           ${order.customer.email ? `<p style="margin:4px 0;font-size:14px;color:#6b6460"><strong style="color:#1c1917">Email:</strong> ${order.customer.email}</p>` : ''}
           <p style="margin:4px 0;font-size:14px;color:#6b6460"><strong style="color:#1c1917">Address:</strong> ${order.customer.address}</p>
           <p style="margin:8px 0 0;font-size:14px;color:#6b6460"><strong style="color:#1c1917">Payment:</strong> ${payLabel(order.payment?.method)}</p>
@@ -75,17 +87,12 @@ async function sendOrderNotification(order) {
       </div>
     </div>`;
 
-  await getTransporter().sendMail({
-    from: FROM,
-    to: process.env.NOTIFY_EMAIL,
-    subject: `🛍️ New Order #${order.orderId} — ₹${Number(order.total).toLocaleString('en-IN')} (${order.customer.name})`,
-    html,
-  });
+  await sendViaBr evo(process.env.NOTIFY_EMAIL, `🛍️ New Order #${order.orderId} — ₹${Number(order.total).toLocaleString('en-IN')} (${order.customer.name})`, html);
 }
 
 // ── Customer confirmation ───────────────────────────────────────────────────
 async function sendCustomerConfirmation(order) {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
+  if (!process.env.BREVO_API_KEY) return;
   if (!order.customer?.email) return;
 
   const html = `
@@ -123,17 +130,12 @@ async function sendCustomerConfirmation(order) {
       </div>
     </div>`;
 
-  await getTransporter().sendMail({
-    from: FROM,
-    to: order.customer.email,
-    subject: `✅ Order #${order.orderId} Confirmed — ₹${Number(order.total).toLocaleString('en-IN')} | OG Accessories 47`,
-    html,
-  });
+  await sendViaBr evo(order.customer.email, `✅ Order #${order.orderId} Confirmed — ₹${Number(order.total).toLocaleString('en-IN')} | OG Accessories 47`, html);
 }
 
 // ── Order status update emails to customer ─────────────────────────────────
 async function sendStatusUpdateEmail(order) {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
+  if (!process.env.BREVO_API_KEY) return;
   if (!order.customer?.email) return;
 
   const status = order.status;
@@ -199,17 +201,12 @@ async function sendStatusUpdateEmail(order) {
       </div>
     </div>`;
 
-  await getTransporter().sendMail({
-    from: FROM,
-    to: order.customer.email,
-    subject: `${cfg.emoji} ${cfg.subject}`,
-    html,
-  });
+  await sendViaBr evo(order.customer.email, `${cfg.emoji} ${cfg.subject}`, html);
 }
 
 // ── Password reset ──────────────────────────────────────────────────────────
 async function sendPasswordResetEmail(user, resetUrl) {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
+  if (!process.env.BREVO_API_KEY) return;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
@@ -223,18 +220,12 @@ async function sendPasswordResetEmail(user, resetUrl) {
         <div style="text-align:center;margin:28px 0">
           <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#8a6a14,#b8921e);color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px">Reset Password →</a>
         </div>
-        <p style="font-size:13px;color:#aaa;line-height:1.6">If you didn't request this, you can safely ignore this email. Your password will not change.</p>
-        <hr style="border:none;border-top:1px solid #e4ddd3;margin:20px 0"/>
-        <p style="font-size:12px;color:#aaa;text-align:center;margin:0">OG Accessories 47 · Old Talwandi Road, Zira, Ferozepur, Punjab</p>
+        <p style="font-size:13px;color:#aaa;line-height:1.6">If you didn't request this, you can safely ignore this email.</p>
+        <p style="font-size:12px;color:#aaa;text-align:center;margin-top:16px">OG Accessories 47 · Old Talwandi Road, Zira, Ferozepur, Punjab</p>
       </div>
     </div>`;
 
-  await getTransporter().sendMail({
-    from: FROM,
-    to: user.email,
-    subject: '🔐 Reset your OG Accessories 47 password',
-    html,
-  });
+  await sendViaBr evo(user.email, '🔐 Reset your OG Accessories 47 password', html);
 }
 
 module.exports = { sendOrderNotification, sendCustomerConfirmation, sendStatusUpdateEmail, sendPasswordResetEmail };
