@@ -1,13 +1,19 @@
 const nodemailer = require('nodemailer');
 
+let _transporter = null;
 function getTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.NOTIFY_EMAIL,
-      pass: process.env.NOTIFY_PASS,
-    },
-  });
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.NOTIFY_EMAIL,
+        pass: process.env.NOTIFY_PASS,
+      },
+      pool: true,
+      maxConnections: 3,
+    });
+  }
+  return _transporter;
 }
 
 const FROM = `"OG Accessories 47" <${process.env.NOTIFY_EMAIL || 'bhullarsam162@gmail.com'}>`;
