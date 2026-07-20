@@ -4,7 +4,10 @@ let _transporter = null;
 function getTransporter() {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      family: 4,
       auth: {
         user: process.env.NOTIFY_EMAIL,
         pass: process.env.NOTIFY_PASS,
