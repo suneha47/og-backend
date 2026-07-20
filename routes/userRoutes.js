@@ -1,7 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const userProtect = require('../middleware/userAuthMiddleware');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -90,6 +92,50 @@ router.put('/me', userProtect, async (req, res) => {
     res.json(userPayload(user, makeToken(user)));
   } catch (err) {
     res.status(500).json({ message: 'Update failed.' });
+  }
+});
+
+// POST /api/users/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required.' });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Always respond OK so we don't leak whether email exists
+    if (!user) return res.json({ message: 'If this email is registered, a reset link has been sent.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetToken = token;
+    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://og-frontend.vercel.app'}/?reset=${token}`;
+    await sendPasswordResetEmail(user, resetUrl);
+
+    res.json({ message: 'If this email is registered, a reset link has been sent.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+});
+
+// POST /api/users/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ message: 'Token and new password are required.' });
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+
+    const user = await User.findOne({ resetToken: token, resetTokenExpiry: { $gt: new Date() } });
+    if (!user) return res.status(400).json({ message: 'Reset link is invalid or has expired.' });
+
+    user.password = password;
+    user.resetToken = '';
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 });
 

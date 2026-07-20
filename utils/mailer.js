@@ -114,4 +114,34 @@ async function sendCustomerConfirmation(order) {
   });
 }
 
-module.exports = { sendOrderNotification, sendCustomerConfirmation };
+// ── Password reset ──────────────────────────────────────────────────────────
+async function sendPasswordResetEmail(user, resetUrl) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#8a6a14,#b8921e,#d4a83c);padding:24px;text-align:center">
+        <h1 style="color:#fff;font-size:22px;margin:0">🔐 Reset Your Password</h1>
+        <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:14px">OG Accessories 47</p>
+      </div>
+      <div style="padding:28px">
+        <p style="font-size:15px;color:#1c1917">Hi <strong>${user.name}</strong>,</p>
+        <p style="font-size:14px;color:#6b6460;line-height:1.7">We received a request to reset your password. Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p>
+        <div style="text-align:center;margin:28px 0">
+          <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#8a6a14,#b8921e);color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px">Reset Password →</a>
+        </div>
+        <p style="font-size:13px;color:#aaa;line-height:1.6">If you didn't request this, you can safely ignore this email. Your password will not change.</p>
+        <hr style="border:none;border-top:1px solid #e4ddd3;margin:20px 0"/>
+        <p style="font-size:12px;color:#aaa;text-align:center;margin:0">OG Accessories 47 · Old Talwandi Road, Zira, Ferozepur, Punjab</p>
+      </div>
+    </div>`;
+
+  await getResend().emails.send({
+    from: 'OG Accessories 47 <onboarding@resend.dev>',
+    to: user.email,
+    subject: '🔐 Reset your OG Accessories 47 password',
+    html,
+  });
+}
+
+module.exports = { sendOrderNotification, sendCustomerConfirmation, sendPasswordResetEmail };

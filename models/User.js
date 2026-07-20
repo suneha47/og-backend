@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   address:  { type: String, default: '' },
   city:     { type: String, default: '' },
   pin:      { type: String, default: '' },
+  resetToken:       { type: String, default: '' },
+  resetTokenExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
