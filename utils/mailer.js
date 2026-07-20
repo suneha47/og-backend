@@ -1,6 +1,6 @@
 const https = require('https');
 
-function sendViaBr evo(to, subject, html) {
+function sendViaBrevo(to, subject, html) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({
       sender: { name: 'OG Accessories 47', email: process.env.NOTIFY_EMAIL },
@@ -87,7 +87,7 @@ async function sendOrderNotification(order) {
       </div>
     </div>`;
 
-  await sendViaBr evo(process.env.NOTIFY_EMAIL, `🛍️ New Order #${order.orderId} — ₹${Number(order.total).toLocaleString('en-IN')} (${order.customer.name})`, html);
+  await sendViaBrevo(process.env.NOTIFY_EMAIL, `🛍️ New Order #${order.orderId} — ₹${Number(order.total).toLocaleString('en-IN')} (${order.customer.name})`, html);
 }
 
 // ── Customer confirmation ───────────────────────────────────────────────────
@@ -130,7 +130,7 @@ async function sendCustomerConfirmation(order) {
       </div>
     </div>`;
 
-  await sendViaBr evo(order.customer.email, `✅ Order #${order.orderId} Confirmed — ₹${Number(order.total).toLocaleString('en-IN')} | OG Accessories 47`, html);
+  await sendViaBrevo(order.customer.email, `✅ Order #${order.orderId} Confirmed — ₹${Number(order.total).toLocaleString('en-IN')} | OG Accessories 47`, html);
 }
 
 // ── Order status update emails to customer ─────────────────────────────────
@@ -201,7 +201,7 @@ async function sendStatusUpdateEmail(order) {
       </div>
     </div>`;
 
-  await sendViaBr evo(order.customer.email, `${cfg.emoji} ${cfg.subject}`, html);
+  await sendViaBrevo(order.customer.email, `${cfg.emoji} ${cfg.subject}`, html);
 }
 
 // ── Password reset ──────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ async function sendPasswordResetEmail(user, resetUrl) {
       </div>
     </div>`;
 
-  await sendViaBr evo(user.email, '🔐 Reset your OG Accessories 47 password', html);
+  await sendViaBrevo(user.email, '🔐 Reset your OG Accessories 47 password', html);
 }
 
 module.exports = { sendOrderNotification, sendCustomerConfirmation, sendStatusUpdateEmail, sendPasswordResetEmail };
