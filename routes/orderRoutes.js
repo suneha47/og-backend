@@ -106,7 +106,8 @@ router.put('/:id/status', protect, async (req, res) => {
     const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
     if (!order) return res.status(404).json({ message: 'Order not found.' });
     res.json(order);
-    sendStatusUpdateEmail(order).catch(e => console.error('[MAILER STATUS]', e.message));
+    console.log(`[STATUS] Order ${order.orderId} → ${status} | customerEmail: "${order.customer?.email}"`);
+    sendStatusUpdateEmail(order).catch(e => console.error('[MAILER STATUS ERROR]', e.message, e.code));
   } catch (err) {
     res.status(500).json({ message: 'Failed to update order.' });
   }
