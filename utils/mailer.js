@@ -1,8 +1,16 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.NOTIFY_EMAIL,
+      pass: process.env.NOTIFY_PASS,
+    },
+  });
 }
+
+const FROM = `"OG Accessories 47" <${process.env.NOTIFY_EMAIL || 'bhullarsam162@gmail.com'}>`;
 
 function itemsTable(items) {
   return items.map(i =>
@@ -22,7 +30,7 @@ function payLabel(method) {
 
 // ── Admin notification ──────────────────────────────────────────────────────
 async function sendOrderNotification(order) {
-  if (!process.env.RESEND_API_KEY) { console.error('[MAILER] Missing RESEND_API_KEY'); return; }
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) { console.error('[MAILER] Missing NOTIFY_EMAIL or NOTIFY_PASS'); return; }
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
@@ -58,8 +66,8 @@ async function sendOrderNotification(order) {
       </div>
     </div>`;
 
-  await getResend().emails.send({
-    from: 'OG Accessories 47 <onboarding@resend.dev>',
+  await getTransporter().sendMail({
+    from: FROM,
     to: process.env.NOTIFY_EMAIL,
     subject: `🛍️ New Order #${order.orderId} — ₹${Number(order.total).toLocaleString('en-IN')} (${order.customer.name})`,
     html,
@@ -68,7 +76,7 @@ async function sendOrderNotification(order) {
 
 // ── Customer confirmation ───────────────────────────────────────────────────
 async function sendCustomerConfirmation(order) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
   if (!order.customer?.email) return;
 
   const html = `
@@ -106,8 +114,8 @@ async function sendCustomerConfirmation(order) {
       </div>
     </div>`;
 
-  await getResend().emails.send({
-    from: 'OG Accessories 47 <onboarding@resend.dev>',
+  await getTransporter().sendMail({
+    from: FROM,
     to: order.customer.email,
     subject: `✅ Order #${order.orderId} Confirmed — ₹${Number(order.total).toLocaleString('en-IN')} | OG Accessories 47`,
     html,
@@ -116,7 +124,7 @@ async function sendCustomerConfirmation(order) {
 
 // ── Order status update emails to customer ─────────────────────────────────
 async function sendStatusUpdateEmail(order) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
   if (!order.customer?.email) return;
 
   const status = order.status;
@@ -157,7 +165,7 @@ async function sendStatusUpdateEmail(order) {
   };
 
   const cfg = configs[status];
-  if (!cfg) return; // no email for 'pending'
+  if (!cfg) return;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
@@ -182,8 +190,8 @@ async function sendStatusUpdateEmail(order) {
       </div>
     </div>`;
 
-  await getResend().emails.send({
-    from: 'OG Accessories 47 <onboarding@resend.dev>',
+  await getTransporter().sendMail({
+    from: FROM,
     to: order.customer.email,
     subject: `${cfg.emoji} ${cfg.subject}`,
     html,
@@ -192,7 +200,7 @@ async function sendStatusUpdateEmail(order) {
 
 // ── Password reset ──────────────────────────────────────────────────────────
 async function sendPasswordResetEmail(user, resetUrl) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_PASS) return;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
@@ -212,8 +220,8 @@ async function sendPasswordResetEmail(user, resetUrl) {
       </div>
     </div>`;
 
-  await getResend().emails.send({
-    from: 'OG Accessories 47 <onboarding@resend.dev>',
+  await getTransporter().sendMail({
+    from: FROM,
     to: user.email,
     subject: '🔐 Reset your OG Accessories 47 password',
     html,
