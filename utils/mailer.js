@@ -114,6 +114,82 @@ async function sendCustomerConfirmation(order) {
   });
 }
 
+// ── Order status update emails to customer ─────────────────────────────────
+async function sendStatusUpdateEmail(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  if (!order.customer?.email) return;
+
+  const status = order.status;
+  const configs = {
+    confirmed: {
+      emoji: '✅', subject: `Order #${order.orderId} Confirmed — We're preparing it!`,
+      heading: 'Order Confirmed!',
+      body: `Great news! Your order has been confirmed and we're now preparing it for dispatch.`,
+      extra: '',
+    },
+    shipped: {
+      emoji: '🚚', subject: `Order #${order.orderId} Shipped — It's on the way!`,
+      heading: 'Your Order is On the Way!',
+      body: `Your order has been handed over to the courier and is on its way to you!`,
+      extra: order.tracking?.trackingNumber ? `
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;margin:16px 0;text-align:center">
+          <div style="font-weight:700;color:#0369a1;margin-bottom:6px">📦 Tracking Info</div>
+          <div style="font-size:14px;color:#1c1917">Courier: <strong>${order.tracking.courierName}</strong></div>
+          <div style="font-size:14px;color:#1c1917;margin-top:4px">Tracking #: <strong>${order.tracking.trackingNumber}</strong></div>
+        </div>` : '',
+    },
+    delivered: {
+      emoji: '🎉', subject: `Order #${order.orderId} Delivered — Thank you!`,
+      heading: 'Order Delivered!',
+      body: `Your order has been delivered. We hope you love your new accessories! Thank you for shopping with OG Accessories 47.`,
+      extra: `
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px;margin:16px 0;text-align:center">
+          <div style="font-size:14px;color:#15803d">Loved your purchase? Share your feedback on WhatsApp!</div>
+          <a href="https://wa.me/918146805002" style="display:inline-block;margin-top:10px;background:#25D366;color:#fff;text-decoration:none;padding:8px 20px;border-radius:6px;font-weight:700;font-size:13px">WhatsApp Us ✨</a>
+        </div>`,
+    },
+    cancelled: {
+      emoji: '❌', subject: `Order #${order.orderId} Cancelled`,
+      heading: 'Order Cancelled',
+      body: `Your order has been cancelled. If you have any questions, please contact us on WhatsApp.`,
+      extra: '',
+    },
+  };
+
+  const cfg = configs[status];
+  if (!cfg) return; // no email for 'pending'
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e4ddd3;border-radius:10px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#8a6a14,#b8921e,#d4a83c);padding:24px;text-align:center">
+        <h1 style="color:#fff;font-size:22px;margin:0">${cfg.emoji} ${cfg.heading}</h1>
+        <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:14px">OG Accessories 47</p>
+      </div>
+      <div style="padding:28px">
+        <p style="font-size:15px;color:#1c1917">Hi <strong>${order.customer.name}</strong>,</p>
+        <p style="font-size:14px;color:#6b6460;line-height:1.7">${cfg.body}</p>
+        <div style="background:#faf9f7;border:1px solid #e4ddd3;border-radius:8px;padding:14px;margin:16px 0">
+          <div style="font-weight:700;font-size:14px;color:#1c1917">Order #${order.orderId}</div>
+          <div style="font-size:13px;color:#6b6460;margin-top:4px">Amount: <strong style="color:#b8921e">₹${Number(order.total).toLocaleString('en-IN')}</strong></div>
+          <div style="font-size:13px;color:#6b6460;margin-top:2px">Delivery to: ${order.customer.address}</div>
+        </div>
+        ${cfg.extra}
+        <div style="background:#fff8e8;border:1px solid #f0d080;border-radius:8px;padding:14px;text-align:center;margin-top:16px">
+          <p style="margin:0;font-size:13px;color:#8a6a14">Questions? WhatsApp us:<br>
+          <a href="https://wa.me/918146805002" style="color:#b8921e;font-weight:700;font-size:15px">+91 81468-05002</a></p>
+        </div>
+        <p style="font-size:12px;color:#aaa;text-align:center;margin-top:16px">OG Accessories 47 · Old Talwandi Road, Zira, Ferozepur, Punjab</p>
+      </div>
+    </div>`;
+
+  await getResend().emails.send({
+    from: 'OG Accessories 47 <onboarding@resend.dev>',
+    to: order.customer.email,
+    subject: `${cfg.emoji} ${cfg.subject}`,
+    html,
+  });
+}
+
 // ── Password reset ──────────────────────────────────────────────────────────
 async function sendPasswordResetEmail(user, resetUrl) {
   if (!process.env.RESEND_API_KEY) return;
@@ -144,4 +220,4 @@ async function sendPasswordResetEmail(user, resetUrl) {
   });
 }
 
-module.exports = { sendOrderNotification, sendCustomerConfirmation, sendPasswordResetEmail };
+module.exports = { sendOrderNotification, sendCustomerConfirmation, sendStatusUpdateEmail, sendPasswordResetEmail };
