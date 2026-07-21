@@ -1,4 +1,6 @@
 const express = require('express');
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Coupon = require('../models/Coupon');
 const Product = require('../models/Product');
@@ -8,12 +10,47 @@ const { sendOrderNotification, sendCustomerConfirmation, sendStatusUpdateEmail }
 
 const router = express.Router();
 
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
+// POST /api/orders/razorpay/create-order — create Razorpay order before payment
+router.post('/razorpay/create-order', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ message: 'Invalid amount.' });
+    const order = await razorpay.orders.create({
+      amount: Math.round(Number(amount) * 100),
+      currency: 'INR',
+      receipt: `rcpt_${Date.now()}`,
+    });
+    res.json({ razorpay_order_id: order.id, amount: order.amount });
+  } catch (err) {
+    console.error('[RAZORPAY CREATE ORDER]', err.message);
+    res.status(500).json({ message: 'Failed to initiate payment.' });
+  }
+});
+
 // POST /api/orders — place order (public)
 router.post('/', async (req, res) => {
   try {
     const { customer, items, total, payment, userId, couponCode } = req.body;
     if (!customer?.name || !customer?.phone || !customer?.address || !items?.length || !total)
       return res.status(400).json({ message: 'Missing required order details.' });
+
+    // Verify Razorpay signature before accepting order
+    if (payment?.method === 'razorpay') {
+      const { paymentId, razorpayOrderId, signature } = payment;
+      if (!paymentId || !razorpayOrderId || !signature)
+        return res.status(400).json({ message: 'Payment verification data missing.' });
+      const expected = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(`${razorpayOrderId}|${paymentId}`)
+        .digest('hex');
+      if (expected !== signature)
+        return res.status(400).json({ message: 'Payment verification failed.' });
+    }
 
     // Apply coupon if provided
     let couponDiscount = 0;
