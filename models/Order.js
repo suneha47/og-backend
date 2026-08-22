@@ -34,6 +34,11 @@ const orderSchema = new mongoose.Schema({
     trackingNumber:{ type: String, default: '' },
   },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  deliveryPartner: {
+    _id:   { type: mongoose.Schema.Types.ObjectId, default: null },
+    name:  { type: String, default: '' },
+    phone: { type: String, default: '' },
+  },
 }, { timestamps: true });
 
 orderSchema.pre('save', async function (next) {

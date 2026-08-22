@@ -20,6 +20,8 @@ const userRoutes    = require('./routes/userRoutes');
 const orderRoutes   = require('./routes/orderRoutes');
 const couponRoutes  = require('./routes/couponRoutes');
 const reviewRoutes  = require('./routes/reviewRoutes');
+const paypalRoutes    = require('./routes/paypalRoutes');
+const deliveryRoutes  = require('./routes/deliveryRoutes');
 
 app.use('/api/admin',    adminRoutes);
 app.use('/api/products', productRoutes);
@@ -28,6 +30,8 @@ app.use('/api/users',    userRoutes);
 app.use('/api/orders',   orderRoutes);
 app.use('/api/coupons',  couponRoutes);
 app.use('/api/reviews',  reviewRoutes);
+app.use('/api/paypal',   paypalRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 app.get('/', (req, res) => res.json({ status: 'OG Accessories 47 Backend Running ✅', timestamp: new Date().toISOString() }));
 
