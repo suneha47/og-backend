@@ -44,7 +44,7 @@ router.patch('/orders/:orderId/assign', protect, async (req, res) => {
     const partner = partnerId ? await DeliveryPartner.findById(partnerId) : null;
     const order = await Order.findByIdAndUpdate(
       req.params.orderId,
-      { deliveryPartner: partner ? { _id: partner._id, name: partner.name, phone: partner.phone } : null },
+      { deliveryPartner: partner ? { partnerId: partner._id, name: partner.name, phone: partner.phone } : null },
       { new: true }
     );
     if (!order) return res.status(404).json({ message: 'Order not found.' });
